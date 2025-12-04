@@ -250,33 +250,31 @@ if "df" not in st.session_state:
         st.session_state.df = pd.DataFrame(columns=["ID", "Resume"])
         st.session_state.data_missing = True
 
+# Lazy load embedding model - only when needed (not on startup)
 if "embedding_model" not in st.session_state:
-    try:
-        st.session_state.embedding_model = HuggingFaceEmbeddings(
-            model_name=EMBEDDING_MODEL, 
-            model_kwargs={"device": "cpu"}
-        )
-    except Exception as e:
-        st.session_state.embedding_model = None
-        st.session_state.embedding_error = str(e)
+    st.session_state.embedding_model = None
 
+# Lazy load vectorstore - only when needed (not on startup)
 if "rag_pipeline" not in st.session_state:
+    st.session_state.rag_pipeline = None
+    st.session_state.vectorstore_missing = False
+    # Try to load if files exist, but don't fail if they don't
     try:
         if os.path.exists(FAISS_PATH) and os.path.exists(os.path.join(FAISS_PATH, "index.faiss")):
-            vectordb = FAISS.load_local(
-                FAISS_PATH, 
-                st.session_state.embedding_model, 
-                distance_strategy=DistanceStrategy.COSINE, 
-                allow_dangerous_deserialization=True
-            )
-            st.session_state.rag_pipeline = SelfQueryRetriever(vectordb, st.session_state.df)
+            # Only load if embedding model is available
+            if st.session_state.embedding_model is not None:
+                vectordb = FAISS.load_local(
+                    FAISS_PATH, 
+                    st.session_state.embedding_model, 
+                    distance_strategy=DistanceStrategy.COSINE, 
+                    allow_dangerous_deserialization=True
+                )
+                st.session_state.rag_pipeline = SelfQueryRetriever(vectordb, st.session_state.df)
+            else:
+                st.session_state.vectorstore_missing = True
         else:
-            # Vectorstore doesn't exist, will be created on first upload
-            st.session_state.rag_pipeline = None
             st.session_state.vectorstore_missing = True
     except Exception as e:
-        # If vectorstore load fails, allow user to upload data
-        st.session_state.rag_pipeline = None
         st.session_state.vectorstore_missing = True
 
 if "resume_list" not in st.session_state:
@@ -353,6 +351,13 @@ with st.sidebar:
         try:
             df_load = pd.read_csv(uploaded_file)
             if "Resume" in df_load.columns and "ID" in df_load.columns:
+                # Lazy load embedding model only when needed
+                if st.session_state.embedding_model is None:
+                    with st.spinner("🔄 Loading embedding model (first time only)... This may take a minute."):
+                        st.session_state.embedding_model = HuggingFaceEmbeddings(
+                            model_name=EMBEDDING_MODEL, 
+                            model_kwargs={"device": "cpu"}
+                        )
                 with st.spinner("🔄 Indexing resumes... This may take a moment."):
                     st.session_state.df = df_load
                     vectordb = ingest(st.session_state.df, "Resume", st.session_state.embedding_model)
