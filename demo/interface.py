@@ -251,10 +251,14 @@ if "df" not in st.session_state:
         st.session_state.data_missing = True
 
 if "embedding_model" not in st.session_state:
-    st.session_state.embedding_model = HuggingFaceEmbeddings(
-        model_name=EMBEDDING_MODEL, 
-        model_kwargs={"device": "cpu"}
-    )
+    try:
+        st.session_state.embedding_model = HuggingFaceEmbeddings(
+            model_name=EMBEDDING_MODEL, 
+            model_kwargs={"device": "cpu"}
+        )
+    except Exception as e:
+        st.session_state.embedding_model = None
+        st.session_state.embedding_error = str(e)
 
 if "rag_pipeline" not in st.session_state:
     try:
