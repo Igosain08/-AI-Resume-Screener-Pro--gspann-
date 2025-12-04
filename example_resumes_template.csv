@@ -1,0 +1,82 @@
+ID,Resume
+0,"John Doe
+Email: john.doe@email.com
+Phone: 555-0100
+
+SUMMARY
+Software Engineer with 5 years of experience developing web applications using Python, JavaScript, and cloud technologies. Proven track record of building scalable systems and leading development teams.
+
+EXPERIENCE
+Senior Software Engineer | Tech Corp | 2020-Present
+- Developed and maintained microservices using Python and FastAPI
+- Led team of 3 developers in agile environment
+- Reduced system latency by 40% through optimization
+
+Software Engineer | StartupXYZ | 2018-2020
+- Built React frontend applications
+- Implemented CI/CD pipelines using Docker and AWS
+- Collaborated with cross-functional teams
+
+SKILLS
+Programming: Python, JavaScript, TypeScript, Java
+Frameworks: React, Node.js, FastAPI, Django
+Cloud: AWS, Docker, Kubernetes
+Databases: PostgreSQL, MongoDB
+
+EDUCATION
+BS Computer Science | MIT | 2018"
+1,"Jane Smith
+Email: jane.smith@email.com
+Phone: 555-0200
+
+SUMMARY
+Data Scientist with 3 years of experience in machine learning and natural language processing. Specialized in building predictive models and NLP systems for enterprise applications.
+
+EXPERIENCE
+Data Scientist | Google | 2021-Present
+- Developed ML models for recommendation systems
+- Worked on NLP projects using transformer models
+- Published 2 papers in top-tier conferences
+
+ML Engineer Intern | StartupAI | 2020-2021
+- Built classification models using TensorFlow
+- Processed and analyzed large datasets
+- Created data pipelines for model training
+
+SKILLS
+Programming: Python, R, SQL
+ML/AI: TensorFlow, PyTorch, Scikit-learn
+NLP: Transformers, BERT, GPT models
+Tools: Jupyter, Git, Docker, Airflow
+
+EDUCATION
+MS Data Science | Stanford University | 2020
+BS Mathematics | UC Berkeley | 2018"
+2,"Bob Johnson
+Email: bob.johnson@email.com
+Phone: 555-0300
+
+SUMMARY
+Full-stack Developer with 7 years of experience building enterprise applications. Expert in Java, Spring Boot, and cloud architecture. Strong background in system design and DevOps.
+
+EXPERIENCE
+Lead Full-Stack Developer | Enterprise Solutions Inc | 2017-Present
+- Architected microservices using Spring Boot
+- Managed cloud infrastructure on Azure
+- Mentored junior developers
+
+Software Developer | WebTech Solutions | 2015-2017
+- Developed RESTful APIs using Java
+- Implemented CI/CD with Jenkins and Docker
+- Optimized database queries improving performance by 50%
+
+SKILLS
+Backend: Java, Spring Boot, Node.js
+Frontend: React, Angular, HTML/CSS
+Cloud: Azure, AWS, Docker, Kubernetes
+Databases: MySQL, PostgreSQL, Redis
+DevOps: Jenkins, GitLab CI, Terraform
+
+EDUCATION
+BS Software Engineering | UC Berkeley | 2015"
+
