@@ -234,48 +234,22 @@ This system leverages state-of-the-art language models and semantic search to re
 - **Scalability**: Tested with 10,000+ resumes
 """
 
-# Initialize session state
+# Initialize session state - make everything lazy to avoid blocking startup
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = [AIMessage(content=welcome_message)]
 
+# Don't load data on startup - only when needed
 if "df" not in st.session_state:
-    try:
-        if os.path.exists(DATA_PATH):
-            st.session_state.df = pd.read_csv(DATA_PATH)
-        else:
-            # Create empty dataframe if file doesn't exist
-            st.session_state.df = pd.DataFrame(columns=["ID", "Resume"])
-            st.session_state.data_missing = True
-    except Exception as e:
-        st.session_state.df = pd.DataFrame(columns=["ID", "Resume"])
-        st.session_state.data_missing = True
+    st.session_state.df = None
+    st.session_state.data_loaded = False
 
 # Lazy load embedding model - only when needed (not on startup)
 if "embedding_model" not in st.session_state:
     st.session_state.embedding_model = None
 
-# Lazy load vectorstore - only when needed (not on startup)
+# Don't load vectorstore on startup - completely lazy
 if "rag_pipeline" not in st.session_state:
     st.session_state.rag_pipeline = None
-    st.session_state.vectorstore_missing = False
-    # Try to load if files exist, but don't fail if they don't
-    try:
-        if os.path.exists(FAISS_PATH) and os.path.exists(os.path.join(FAISS_PATH, "index.faiss")):
-            # Only load if embedding model is available
-            if st.session_state.embedding_model is not None:
-                vectordb = FAISS.load_local(
-                    FAISS_PATH, 
-                    st.session_state.embedding_model, 
-                    distance_strategy=DistanceStrategy.COSINE, 
-                    allow_dangerous_deserialization=True
-                )
-                st.session_state.rag_pipeline = SelfQueryRetriever(vectordb, st.session_state.df)
-            else:
-                st.session_state.vectorstore_missing = True
-        else:
-            st.session_state.vectorstore_missing = True
-    except Exception as e:
-        st.session_state.vectorstore_missing = True
 
 if "resume_list" not in st.session_state:
     st.session_state.resume_list = []
@@ -299,7 +273,8 @@ st.markdown("""
 # Stats dashboard
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-    st.metric("📊 Total Resumes", len(st.session_state.df))
+    resume_count = len(st.session_state.df) if st.session_state.df is not None else 0
+    st.metric("📊 Total Resumes", resume_count)
 with col2:
     st.metric("🔍 Queries Today", len(st.session_state.query_stats["queries_today"]))
 with col3:
@@ -353,16 +328,22 @@ with st.sidebar:
             if "Resume" in df_load.columns and "ID" in df_load.columns:
                 # Lazy load embedding model only when needed
                 if st.session_state.embedding_model is None:
-                    with st.spinner("🔄 Loading embedding model (first time only)... This may take a minute."):
-                        st.session_state.embedding_model = HuggingFaceEmbeddings(
-                            model_name=EMBEDDING_MODEL, 
-                            model_kwargs={"device": "cpu"}
-                        )
+                    with st.spinner("🔄 Loading embedding model (first time only)... This may take 1-2 minutes."):
+                        try:
+                            st.session_state.embedding_model = HuggingFaceEmbeddings(
+                                model_name=EMBEDDING_MODEL, 
+                                model_kwargs={"device": "cpu"}
+                            )
+                        except Exception as e:
+                            st.error(f"❌ Failed to load embedding model: {str(e)}")
+                            st.stop()
                 with st.spinner("🔄 Indexing resumes... This may take a moment."):
                     st.session_state.df = df_load
+                    st.session_state.data_loaded = True
                     vectordb = ingest(st.session_state.df, "Resume", st.session_state.embedding_model)
                     st.session_state.rag_pipeline = SelfQueryRetriever(vectordb, st.session_state.df)
-                st.success(f"✅ Successfully loaded {len(df_load)} resumes!")
+                st.success(f"✅ Successfully loaded and indexed {len(df_load)} resumes!")
+                st.rerun()
             else:
                 st.error("❌ CSV must contain 'ID' and 'Resume' columns")
         except Exception as e:
@@ -476,9 +457,14 @@ if not check_model_name(st.session_state.gpt_selection, st.session_state.api_key
     st.error("❌ Invalid model name. Please check available models.")
     st.stop()
 
+# Check if data is loaded
+if st.session_state.df is None or len(st.session_state.df) == 0:
+    st.info("📤 **Welcome!** Please upload a CSV file with resumes (ID and Resume columns) to get started.")
+    st.stop()
+
 # Check if vectorstore is available
 if st.session_state.rag_pipeline is None:
-    st.warning("⚠️ **No resume data loaded.** Please upload a CSV file with resumes (ID and Resume columns) to get started.")
+    st.warning("⚠️ **No resume data indexed yet.** Please upload a CSV file to index your resumes.")
     st.stop()
 
 # Initialize retriever and LLM
