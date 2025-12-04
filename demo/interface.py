@@ -3,6 +3,7 @@ sys.dont_write_bytecode = True
 
 import time
 import json
+import os
 from datetime import datetime
 
 try:
@@ -12,14 +13,6 @@ except ImportError:
     # If dotenv not available, use environment variables directly
     def load_dotenv():
         pass
-    import os
-    # Set defaults if env vars not set
-    if not os.getenv("DATA_PATH"):
-        os.environ["DATA_PATH"] = "data/main-data/synthetic-resumes.csv"
-    if not os.getenv("FAISS_PATH"):
-        os.environ["FAISS_PATH"] = "vectorstore"
-    if not os.getenv("EMBEDDING_MODEL"):
-        os.environ["EMBEDDING_MODEL"] = "sentence-transformers/all-MiniLM-L6-v2"
 
 import pandas as pd
 import streamlit as st
