@@ -4,7 +4,22 @@ sys.dont_write_bytecode = True
 import time
 import json
 from datetime import datetime
-from dotenv import load_dotenv
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # If dotenv not available, use environment variables directly
+    def load_dotenv():
+        pass
+    import os
+    # Set defaults if env vars not set
+    if not os.getenv("DATA_PATH"):
+        os.environ["DATA_PATH"] = "data/main-data/synthetic-resumes.csv"
+    if not os.getenv("FAISS_PATH"):
+        os.environ["FAISS_PATH"] = "vectorstore"
+    if not os.getenv("EMBEDDING_MODEL"):
+        os.environ["EMBEDDING_MODEL"] = "sentence-transformers/all-MiniLM-L6-v2"
 
 import pandas as pd
 import streamlit as st
@@ -29,11 +44,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Load environment variables (dotenv is optional)
 load_dotenv()
 
-DATA_PATH = os.getenv("DATA_PATH")
-FAISS_PATH = os.getenv("FAISS_PATH")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL")
+DATA_PATH = os.getenv("DATA_PATH", "data/main-data/synthetic-resumes.csv")
+FAISS_PATH = os.getenv("FAISS_PATH", "vectorstore")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 
 # Custom CSS for modern UI
 st.markdown("""
