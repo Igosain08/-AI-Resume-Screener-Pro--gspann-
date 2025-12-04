@@ -45,6 +45,8 @@ ENV/
 !example_resumes_template.csv
 data/main-data/*.csv
 !data/main-data/synthetic-resumes.csv
+data/supplementary-data/*.csv
+data/resume.csv
 
 # Vector stores
 vectorstore/
