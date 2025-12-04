@@ -239,7 +239,16 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = [AIMessage(content=welcome_message)]
 
 if "df" not in st.session_state:
-    st.session_state.df = pd.read_csv(DATA_PATH)
+    try:
+        if os.path.exists(DATA_PATH):
+            st.session_state.df = pd.read_csv(DATA_PATH)
+        else:
+            # Create empty dataframe if file doesn't exist
+            st.session_state.df = pd.DataFrame(columns=["ID", "Resume"])
+            st.session_state.data_missing = True
+    except Exception as e:
+        st.session_state.df = pd.DataFrame(columns=["ID", "Resume"])
+        st.session_state.data_missing = True
 
 if "embedding_model" not in st.session_state:
     st.session_state.embedding_model = HuggingFaceEmbeddings(
@@ -248,13 +257,23 @@ if "embedding_model" not in st.session_state:
     )
 
 if "rag_pipeline" not in st.session_state:
-    vectordb = FAISS.load_local(
-        FAISS_PATH, 
-        st.session_state.embedding_model, 
-        distance_strategy=DistanceStrategy.COSINE, 
-        allow_dangerous_deserialization=True
-    )
-    st.session_state.rag_pipeline = SelfQueryRetriever(vectordb, st.session_state.df)
+    try:
+        if os.path.exists(FAISS_PATH) and os.path.exists(os.path.join(FAISS_PATH, "index.faiss")):
+            vectordb = FAISS.load_local(
+                FAISS_PATH, 
+                st.session_state.embedding_model, 
+                distance_strategy=DistanceStrategy.COSINE, 
+                allow_dangerous_deserialization=True
+            )
+            st.session_state.rag_pipeline = SelfQueryRetriever(vectordb, st.session_state.df)
+        else:
+            # Vectorstore doesn't exist, will be created on first upload
+            st.session_state.rag_pipeline = None
+            st.session_state.vectorstore_missing = True
+    except Exception as e:
+        # If vectorstore load fails, allow user to upload data
+        st.session_state.rag_pipeline = None
+        st.session_state.vectorstore_missing = True
 
 if "resume_list" not in st.session_state:
     st.session_state.resume_list = []
@@ -446,6 +465,11 @@ if not check_openai_api_key(st.session_state.api_key):
 
 if not check_model_name(st.session_state.gpt_selection, st.session_state.api_key):
     st.error("❌ Invalid model name. Please check available models.")
+    st.stop()
+
+# Check if vectorstore is available
+if st.session_state.rag_pipeline is None:
+    st.warning("⚠️ **No resume data loaded.** Please upload a CSV file with resumes (ID and Resume columns) to get started.")
     st.stop()
 
 # Initialize retriever and LLM
