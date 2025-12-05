@@ -19,14 +19,17 @@ import openai
 from streamlit_modal import Modal
 
 from langchain_core.messages import AIMessage, HumanMessage
-from langchain_community.vectorstores import FAISS
-from langchain_community.vectorstores.faiss import DistanceStrategy
-from langchain_community.embeddings import HuggingFaceEmbeddings
 
-from llm_agent import ChatBot
-from ingest_data import ingest
-from retriever import SelfQueryRetriever
-import chatbot_verbosity as chatbot_verbosity
+# Lazy imports - only load heavy packages when needed
+# These will be imported inside functions that need them
+# from langchain_community.vectorstores import FAISS
+# from langchain_community.vectorstores.faiss import DistanceStrategy
+# from langchain_community.embeddings import HuggingFaceEmbeddings
+
+# from llm_agent import ChatBot
+# from ingest_data import ingest
+# from retriever import SelfQueryRetriever
+# import chatbot_verbosity as chatbot_verbosity
 
 # Page config MUST be first Streamlit command
 st.set_page_config(
@@ -334,6 +337,11 @@ with st.sidebar:
         try:
             df_load = pd.read_csv(uploaded_file)
             if "Resume" in df_load.columns and "ID" in df_load.columns:
+                # Lazy import heavy packages only when needed
+                from langchain_community.embeddings import HuggingFaceEmbeddings
+                from ingest_data import ingest
+                from retriever import SelfQueryRetriever
+                
                 # Lazy load embedding model only when needed
                 if st.session_state.embedding_model is None:
                     with st.spinner("🔄 Loading embedding model (first time only)... This may take 1-2 minutes."):
@@ -474,6 +482,10 @@ if st.session_state.rag_pipeline is None:
 user_query = st.chat_input("💬 Enter a job description or ask about candidates...")
 
 if user_query and user_query.strip():
+    # Lazy import heavy packages only when needed
+    from llm_agent import ChatBot
+    import chatbot_verbosity as chatbot_verbosity
+    
     # Validate API key only when user submits a query
     if not check_openai_api_key(st.session_state.api_key):
         st.error("❌ Invalid API key. Please check your OpenAI API key in the sidebar.")
