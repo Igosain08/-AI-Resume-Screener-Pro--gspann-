@@ -470,13 +470,6 @@ if st.session_state.rag_pipeline is None:
     st.warning("⚠️ **No resume data indexed yet.** Please upload a CSV file to index your resumes.")
     st.stop()
 
-# Initialize retriever and LLM
-retriever = st.session_state.rag_pipeline
-llm = ChatBot(
-    api_key=st.session_state.api_key,
-    model=st.session_state.gpt_selection,
-)
-
 # Chat input
 user_query = st.chat_input("💬 Enter a job description or ask about candidates...")
 
@@ -489,6 +482,13 @@ if user_query and user_query.strip():
     if not check_model_name(st.session_state.gpt_selection, st.session_state.api_key):
         st.error("❌ Invalid model name. Please check available models.")
         st.stop()
+    
+    # Initialize retriever and LLM only when needed
+    retriever = st.session_state.rag_pipeline
+    llm = ChatBot(
+        api_key=st.session_state.api_key,
+        model=st.session_state.gpt_selection,
+    )
     
     # Add user message
     with st.chat_message("user"):
