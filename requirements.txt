@@ -20,7 +20,7 @@ openai>=1.0.0,<2.0.0
 # ML/AI packages (large - install takes 30-60 min on first deploy)
 # These are lazy-loaded, but must be installed
 sentence-transformers==2.2.2
-faiss-cpu==1.8.0
+faiss-cpu>=1.8.0
 
 # Pydantic (compatibility with LangChain)
 pydantic>=2.0.0,<3.0.0
