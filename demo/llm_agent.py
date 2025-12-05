@@ -1,13 +1,19 @@
 import sys, httpx, os
 sys.dont_write_bytecode = True
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    def load_dotenv():
+        pass
 
 from langchain_openai.chat_models import ChatOpenAI
-from langchain.schema import HumanMessage, SystemMessage, AIMessage
-
-
-load_dotenv()
+try:
+    from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+except ImportError:
+    # Fallback for older langchain versions
+    from langchain.schema import HumanMessage, SystemMessage, AIMessage
 
 DATA_PATH = os.getenv("DATA_PATH")
 FAISS_PATH = os.getenv("FAISS_PATH")

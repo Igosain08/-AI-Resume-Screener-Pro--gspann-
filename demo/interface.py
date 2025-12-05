@@ -3,7 +3,6 @@ sys.dont_write_bytecode = True
 
 import time
 import json
-import os
 from datetime import datetime
 
 try:
@@ -453,18 +452,13 @@ for message in st.session_state.chat_history:
         with st.chat_message("assistant"):
             message[0].render(*message[1:])
 
-# API key validation
+# API key validation - only check if key is provided, don't block on startup
 if not st.session_state.api_key:
     st.info("🔑 Please add your OpenAI API key in the sidebar to continue.")
     st.stop()
 
-if not check_openai_api_key(st.session_state.api_key):
-    st.error("❌ Invalid API key. Please check your OpenAI API key.")
-    st.stop()
-
-if not check_model_name(st.session_state.gpt_selection, st.session_state.api_key):
-    st.error("❌ Invalid model name. Please check available models.")
-    st.stop()
+# Only validate API key when user actually tries to use it (not on every page load)
+# Move validation to when user submits a query instead
 
 # Check if data is loaded
 if st.session_state.df is None or len(st.session_state.df) == 0:
@@ -487,6 +481,15 @@ llm = ChatBot(
 user_query = st.chat_input("💬 Enter a job description or ask about candidates...")
 
 if user_query and user_query.strip():
+    # Validate API key only when user submits a query
+    if not check_openai_api_key(st.session_state.api_key):
+        st.error("❌ Invalid API key. Please check your OpenAI API key in the sidebar.")
+        st.stop()
+    
+    if not check_model_name(st.session_state.gpt_selection, st.session_state.api_key):
+        st.error("❌ Invalid model name. Please check available models.")
+        st.stop()
+    
     # Add user message
     with st.chat_message("user"):
         st.markdown(user_query)
@@ -521,8 +524,7 @@ if user_query and user_query.strip():
         response = st.write_stream(stream_message)
         
         # Display retriever details
-        retriever_message = chatbot_verbosity
-        retriever_message.render(
+        chatbot_verbosity.render(
             document_list, 
             retriever.meta_data, 
             response_time
@@ -543,21 +545,19 @@ if user_query and user_query.strip():
         
         # Add to chat history
         st.session_state.chat_history.append(AIMessage(content=response))
-        st.session_state.chat_history.append((
-            retriever_message, 
-            document_list, 
-            retriever.meta_data, 
-            response_time
-        ))
+        # Store metadata for verbosity display
+        st.session_state.last_meta_data = {
+            "document_list": document_list,
+            "meta_data": retriever.meta_data,
+            "response_time": response_time
+        }
 
 # Analytics section (if there are results)
 if st.session_state.resume_list and len(st.session_state.chat_history) > 0:
-    # Get last response time from chat history
+    # Get last response time from stored metadata
     last_response_time = 0
-    for msg in reversed(st.session_state.chat_history):
-        if isinstance(msg, tuple) and len(msg) > 3:
-            last_response_time = msg[3]
-            break
+    if hasattr(st.session_state, 'last_meta_data'):
+        last_response_time = st.session_state.last_meta_data.get("response_time", 0)
     
     st.divider()
     st.markdown("### 📊 Candidate Analysis")
