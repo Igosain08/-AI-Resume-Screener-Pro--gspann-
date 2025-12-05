@@ -3,8 +3,9 @@ streamlit==1.34.0
 streamlit_modal==0.1.2
 python-dotenv==1.0.1
 
-# Data processing (using versions with pre-built wheels)
-pandas>=2.0.0
+# Data processing (using versions with pre-built wheels for Python 3.13)
+# pandas is lazy-loaded, but must be available
+pandas>=2.1.0
 numpy>=1.24.0,<2.0.0
 
 # LangChain (pinned for compatibility)

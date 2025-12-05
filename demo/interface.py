@@ -13,7 +13,8 @@ except ImportError:
     def load_dotenv():
         pass
 
-import pandas as pd
+# Lazy import pandas - only when needed
+# import pandas as pd
 import streamlit as st
 import openai
 from streamlit_modal import Modal
