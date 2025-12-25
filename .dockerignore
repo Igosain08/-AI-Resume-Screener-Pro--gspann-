@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Environment
+.env
+.env.local
+
+# Data (only include essential)
+data/main-data/gpt*/
+data/supplementary-data/
+evaluation/
+preprocessing/
+*.ipynb
+
+# Vectorstores (only include main)
+vectorstore-pdf/
+vectorstore-synthetic/
+
+# Logs
+*.log
+
+# Git
+.git/
+.gitignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/
+
+# Documentation
+*.md
+!README.md
+

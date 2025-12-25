@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: resume-screener
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run demo/interface.py --server.port=$PORT --server.address=0.0.0.0
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: DATA_PATH
+        value: data/main-data/synthetic-resumes.csv
+      - key: FAISS_PATH
+        value: vectorstore
+      - key: EMBEDDING_MODEL
+        value: sentence-transformers/all-MiniLM-L6-v2
