@@ -41,11 +41,13 @@ st.set_page_config(
 )
 
 # Load environment variables (dotenv is optional)
-load_dotenv()
+# Use override=True to ensure we reload from file, not cache
+load_dotenv(override=True)
 
 DATA_PATH = os.getenv("DATA_PATH", "data/main-data/synthetic-resumes.csv")
 FAISS_PATH = os.getenv("FAISS_PATH", "vectorstore")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 # Custom CSS for modern UI
 st.markdown("""
@@ -162,10 +164,9 @@ This advanced system uses Retrieval-Augmented Generation (RAG) to help you find 
 
 #### 🚀 Quick Start
 
-1. **Add your OpenAI API key** in the sidebar 🔑
-2. **Upload resumes** or use the default dataset 📄
-3. **Enter a job description** to find matching candidates 💼
-4. **Get AI-powered insights** and candidate recommendations 🤖
+1. **Upload resumes** or use the default dataset 📄
+2. **Enter a job description** to find matching candidates 💼
+3. **Get AI-powered insights** and candidate recommendations 🤖
 
 #### ✨ Key Features
 
@@ -266,6 +267,9 @@ if "rag_pipeline" not in st.session_state:
 if "resume_list" not in st.session_state:
     st.session_state.resume_list = []
 
+if "last_uploaded_file_id" not in st.session_state:
+    st.session_state.last_uploaded_file_id = None
+
 if "query_stats" not in st.session_state:
     st.session_state.query_stats = {
         "total_queries": 0,
@@ -300,13 +304,9 @@ st.divider()
 with st.sidebar:
     st.markdown("### ⚙️ Control Panel")
     
-    # API Key
-    api_key = st.text_input(
-        "🔑 OpenAI API Key", 
-        type="password", 
-        key="api_key",
-        help="Enter your OpenAI API key to enable AI features"
-    )
+    # API Key is now loaded from environment variable
+    # Always reload from environment to avoid stale cache
+    st.session_state.api_key = OPENAI_API_KEY
     
     # Configuration
     st.markdown("#### 🎛️ Configuration")
@@ -335,36 +335,42 @@ with st.sidebar:
     )
     
     if uploaded_file is not None:
-        try:
-            df_load = pd.read_csv(uploaded_file)
-            if "Resume" in df_load.columns and "ID" in df_load.columns:
-                # Lazy import heavy packages only when needed
-                from langchain_community.embeddings import HuggingFaceEmbeddings
-                from ingest_data import ingest
-                from retriever import SelfQueryRetriever
-                
-                # Lazy load embedding model only when needed
-                if st.session_state.embedding_model is None:
-                    with st.spinner("🔄 Loading embedding model (first time only)... This may take 1-2 minutes."):
-                        try:
-                            st.session_state.embedding_model = HuggingFaceEmbeddings(
-                                model_name=EMBEDDING_MODEL, 
-                                model_kwargs={"device": "cpu"}
-                            )
-                        except Exception as e:
-                            st.error(f"❌ Failed to load embedding model: {str(e)}")
-                            st.stop()
-                with st.spinner("🔄 Indexing resumes... This may take a moment."):
-                    st.session_state.df = df_load
-                    st.session_state.data_loaded = True
-                    vectordb = ingest(st.session_state.df, "Resume", st.session_state.embedding_model)
-                    st.session_state.rag_pipeline = SelfQueryRetriever(vectordb, st.session_state.df)
-                st.success(f"✅ Successfully loaded and indexed {len(df_load)} resumes!")
-                st.rerun()
-            else:
-                st.error("❌ CSV must contain 'ID' and 'Resume' columns")
-        except Exception as e:
-            st.error(f"❌ Error loading file: {str(e)}")
+        # Check if this is a new file (avoid re-processing the same file)
+        file_id = uploaded_file.file_id if hasattr(uploaded_file, 'file_id') else id(uploaded_file)
+        if st.session_state.last_uploaded_file_id != file_id:
+            try:
+                import pandas as pd
+                df_load = pd.read_csv(uploaded_file)
+                if "Resume" in df_load.columns and "ID" in df_load.columns:
+                    # Lazy import heavy packages only when needed
+                    from langchain_huggingface import HuggingFaceEmbeddings
+                    from ingest_data import ingest
+                    from retriever import SelfQueryRetriever
+                    
+                    # Lazy load embedding model only when needed
+                    if st.session_state.embedding_model is None:
+                        with st.spinner("🔄 Loading embedding model (first time only)... This may take 1-2 minutes."):
+                            try:
+                                st.session_state.embedding_model = HuggingFaceEmbeddings(
+                                    model_name=EMBEDDING_MODEL, 
+                                    model_kwargs={"device": "cpu"}
+                                )
+                            except Exception as e:
+                                st.error(f"❌ Failed to load embedding model: {str(e)}")
+                                st.stop()
+                    with st.spinner("🔄 Indexing resumes... This may take a moment."):
+                        st.session_state.df = df_load
+                        st.session_state.data_loaded = True
+                        vectordb = ingest(st.session_state.df, "Resume", st.session_state.embedding_model)
+                        st.session_state.rag_pipeline = SelfQueryRetriever(vectordb, st.session_state.df)
+                    st.session_state.last_uploaded_file_id = file_id
+                    st.success(f"✅ Successfully loaded and indexed {len(df_load)} resumes!")
+                else:
+                    st.error("❌ CSV must contain 'ID' and 'Resume' columns")
+            except Exception as e:
+                st.error(f"❌ Error loading file: {str(e)}")
+                import traceback
+                st.error(traceback.format_exc())
     
     # Actions
     st.markdown("#### 🛠️ Actions")
@@ -404,10 +410,9 @@ with st.sidebar:
         ### 📚 User Guide
         
         **Getting Started:**
-        1. Add your OpenAI API key
-        2. Upload resumes or use default dataset
-        3. Enter job description
-        4. Review AI recommendations
+        1. Upload resumes or use default dataset
+        2. Enter job description
+        3. Review AI recommendations
         
         **Best Practices:**
         - Use detailed job descriptions
@@ -423,28 +428,33 @@ with st.sidebar:
 
 # Helper functions
 def check_openai_api_key(api_key: str):
-    if not api_key:
+    if not api_key or api_key.strip() == "" or api_key == "your-api-key-here":
         return False
-    openai.api_key = api_key
     try:
-        _ = openai.chat.completions.create(
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        _ = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": "Hello!"}],
             max_tokens=3
         )
         return True
-    except:
+    except Exception as e:
+        # Don't print error details for security, just return False
         return False
 
 def check_model_name(model_name: str, api_key: str):
-    if not api_key:
+    if not api_key or api_key.strip() == "" or api_key == "your-api-key-here":
         return False
-    openai.api_key = api_key
     try:
-        model_list = [model.id for model in openai.models.list()]
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        models = client.models.list()
+        model_list = [model.id for model in models.data]
         return model_name in model_list
     except:
-        return False
+        # If we can't check models, assume it's valid (model check is not critical)
+        return True
 
 # Main chat interface
 st.markdown("### 💬 Chat with AI Resume Screener")
@@ -461,10 +471,14 @@ for message in st.session_state.chat_history:
         with st.chat_message("assistant"):
             message[0].render(*message[1:])
 
-# API key validation - only check if key is provided, don't block on startup
-if not st.session_state.api_key:
-    st.info("🔑 Please add your OpenAI API key in the sidebar to continue.")
+# API key validation - check environment variable
+if not OPENAI_API_KEY:
+    st.error("❌ OPENAI_API_KEY environment variable is not set. Please set it in your .env file or environment.")
+    st.info("💡 Create a .env file in the root directory with: OPENAI_API_KEY=your-api-key-here")
     st.stop()
+
+# Set API key in session state from environment (always update to avoid stale cache)
+st.session_state.api_key = OPENAI_API_KEY
 
 # Only validate API key when user actually tries to use it (not on every page load)
 # Move validation to when user submits a query instead
@@ -489,7 +503,8 @@ if user_query and user_query.strip():
     
     # Validate API key only when user submits a query
     if not check_openai_api_key(st.session_state.api_key):
-        st.error("❌ Invalid API key. Please check your OpenAI API key in the sidebar.")
+        st.error("❌ Invalid API key. Please check your OPENAI_API_KEY in the .env file.")
+        st.info("💡 Make sure your .env file contains a valid OpenAI API key: OPENAI_API_KEY=sk-...")
         st.stop()
     
     if not check_model_name(st.session_state.gpt_selection, st.session_state.api_key):

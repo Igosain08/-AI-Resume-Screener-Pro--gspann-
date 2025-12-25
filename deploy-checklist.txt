@@ -1,0 +1,40 @@
+📋 Deployment Checklist for Streamlit Cloud
+
+BEFORE DEPLOYING:
+□ Create GitHub repository
+□ Push code to GitHub (excluding large files)
+□ Set up .gitignore properly
+□ Create Streamlit Cloud account
+□ Prepare API key for secrets
+
+FILES TO COMMIT:
+□ demo/ (all Python files)
+□ vectorstore/ (index.faiss, index.pkl)
+□ data/main-data/synthetic-resumes.csv
+□ requirements.txt
+□ README.md
+□ .streamlit/config.toml (optional)
+□ DEPLOYMENT.md
+
+FILES TO EXCLUDE (via .gitignore):
+□ .env
+□ data/main-data/gpt*/
+□ data/supplementary-data/
+□ vectorstore-pdf/
+□ vectorstore-synthetic/
+□ evaluation/
+□ preprocessing/
+□ *.ipynb (unless needed)
+
+STREAMLIT CLOUD SECRETS:
+OPENAI_API_KEY=sk-...
+DATA_PATH=data/main-data/synthetic-resumes.csv
+FAISS_PATH=vectorstore
+EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+
+DEPLOYMENT SETTINGS:
+- Main file: demo/interface.py
+- Python version: 3.9+
+- First deploy: 30-60 minutes
+- Subsequent deploys: 5-10 minutes
+

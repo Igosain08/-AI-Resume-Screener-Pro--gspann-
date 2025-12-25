@@ -4,11 +4,33 @@ sys.dont_write_bytecode = True
 from typing import List
 from pydantic.v1 import BaseModel, Field
 
-from langchain.agents.output_parsers import OpenAIFunctionsAgentOutputParser
-from langchain.agents import tool
-from langchain.prompts import ChatPromptTemplate
-from langchain.schema.agent import AgentFinish
-from langchain.tools.render import format_tool_to_openai_function
+from langchain_core.tools import tool
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.agents import AgentFinish, AgentActionMessageLog
+from langchain_core.messages import AIMessage
+
+
+# Custom output parser for OpenAI function calls
+class OpenAIFunctionsAgentOutputParser:
+    def __call__(self, message: AIMessage):
+        if hasattr(message, 'tool_calls') and message.tool_calls:
+            # Extract the first tool call (tool_calls is a list of dicts)
+            tool_call = message.tool_calls[0]
+            tool_name = tool_call.get("name")
+            tool_input = tool_call.get("args", {})
+            
+            return AgentActionMessageLog(
+                tool=tool_name,
+                tool_input=tool_input,
+                log="",
+                message_log=[message]
+            )
+        else:
+            # No tool call, return AgentFinish
+            return AgentFinish(
+                return_values={"output": message.content or ""},
+                log=message.content or ""
+            )
 
 
 RAG_K_THRESHOLD = 5
@@ -118,14 +140,18 @@ class SelfQueryRetriever(RAGRetriever):
           "retrieve_applicant_id": retrieve_applicant_id,
           "retrieve_applicant_jd": retrieve_applicant_jd
         }
-        self.meta_data["query_type"] = response.tool
-        self.meta_data["extracted_input"] = response.tool_input
-        return toolbox[response.tool].run(response.tool_input)
+        tool_name = response.tool
+        tool_input = response.tool_input
+        self.meta_data["query_type"] = tool_name
+        self.meta_data["extracted_input"] = tool_input
+        return toolbox[tool_name].invoke(tool_input)
       
     self.meta_data["rag_mode"] = rag_mode
-    llm_func_call = llm.llm.bind(functions=[format_tool_to_openai_function(tool) for tool in [retrieve_applicant_id, retrieve_applicant_jd]])
+    # Bind tools to LLM
+    llm_func_call = llm.llm.bind_tools([retrieve_applicant_id, retrieve_applicant_jd])
 
-    chain = self.prompt | llm_func_call | OpenAIFunctionsAgentOutputParser() | router
+    parser = OpenAIFunctionsAgentOutputParser()
+    chain = self.prompt | llm_func_call | parser | router
     result = chain.invoke({"input": question})
 
     return result

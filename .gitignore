@@ -37,8 +37,9 @@ ENV/
 .env
 .env.local
 
-# Streamlit
-.streamlit/
+# Streamlit (config.toml should be committed)
+.streamlit/secrets.toml
+.streamlit/credentials.json
 
 # Data files (large)
 *.csv
@@ -48,11 +49,12 @@ data/main-data/*.csv
 data/supplementary-data/*.csv
 data/resume.csv
 
-# Vector stores
-vectorstore/
-vectorstore-*/
-*.faiss
-*.pkl
+# Vector stores (keep main vectorstore for deployment)
+vectorstore-pdf/
+vectorstore-synthetic/
+# Allow main vectorstore/ to be committed
+!vectorstore/index.faiss
+!vectorstore/index.pkl
 
 # Logs
 *.log
