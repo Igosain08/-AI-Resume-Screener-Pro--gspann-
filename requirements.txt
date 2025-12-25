@@ -1,6 +1,6 @@
 # Core dependencies
 streamlit==1.34.0
-streamlit_modal==0.1.2
+# streamlit_modal==0.1.2  # Not used in the code
 python-dotenv==1.0.1
 
 # Data processing (pandas 2.2.1 has better Python 3.13 wheel support)
