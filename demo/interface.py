@@ -16,8 +16,8 @@ except ImportError:
 # Lazy import pandas - only when needed
 # import pandas as pd
 import streamlit as st
-# openai is only used in helper functions, not at module level
-from streamlit_modal import Modal
+# streamlit_modal is not actually used in the code, removing import
+# from streamlit_modal import Modal
 
 from langchain_core.messages import AIMessage, HumanMessage
 
