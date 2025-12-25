@@ -16,7 +16,7 @@ except ImportError:
 # Lazy import pandas - only when needed
 # import pandas as pd
 import streamlit as st
-import openai
+# openai is only used in helper functions, not at module level
 from streamlit_modal import Modal
 
 from langchain_core.messages import AIMessage, HumanMessage
@@ -431,7 +431,16 @@ def check_openai_api_key(api_key: str):
     if not api_key or api_key.strip() == "" or api_key == "your-api-key-here":
         return False
     try:
-        from openai import OpenAI
+        # Try importing OpenAI - it should be available
+        try:
+            from openai import OpenAI
+        except ImportError:
+            # If openai package is not installed, install it
+            import subprocess
+            import sys
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "openai>=1.0.0"])
+            from openai import OpenAI
+        
         client = OpenAI(api_key=api_key)
         _ = client.chat.completions.create(
             model="gpt-4o-mini",
