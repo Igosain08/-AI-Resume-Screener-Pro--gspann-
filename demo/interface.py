@@ -19,7 +19,20 @@ import streamlit as st
 # streamlit_modal is not actually used in the code, removing import
 # from streamlit_modal import Modal
 
-from langchain_core.messages import AIMessage, HumanMessage
+try:
+    from langchain_core.messages import AIMessage, HumanMessage
+except ImportError:
+    # Fallback for older langchain versions
+    try:
+        from langchain.schema import AIMessage, HumanMessage
+    except ImportError:
+        # If both fail, create minimal message classes
+        class AIMessage:
+            def __init__(self, content=""):
+                self.content = content
+        class HumanMessage:
+            def __init__(self, content=""):
+                self.content = content
 
 # Lazy imports - only load heavy packages when needed
 # These will be imported inside functions that need them
