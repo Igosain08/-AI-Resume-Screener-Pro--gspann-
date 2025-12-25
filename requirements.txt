@@ -8,10 +8,10 @@ python-dotenv==1.0.1
 pandas==2.2.1
 numpy>=1.24.0,<2.0.0
 
-# LangChain (pinned for compatibility - using specific versions to avoid dependency resolution issues)
+# LangChain (pinned for compatibility - resolved dependency conflicts)
 langchain==0.1.17
 langchain-community==0.0.36
-langchain-core==0.1.50
+langchain-core>=0.1.52,<0.2.0  # langchain-huggingface requires >=0.1.52
 langchain-openai==0.1.6
 langchain-text-splitters==0.0.1
 langchain-huggingface==0.0.1
