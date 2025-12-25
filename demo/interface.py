@@ -514,20 +514,29 @@ st.session_state.api_key = OPENAI_API_KEY
 # Only validate API key when user actually tries to use it (not on every page load)
 # Move validation to when user submits a query instead
 
-# Check if data is loaded
+# Check if data is loaded - but don't block the UI, just show a message
 if st.session_state.df is None or len(st.session_state.df) == 0:
     st.info("📤 **Welcome!** Please upload a CSV file with resumes (ID and Resume columns) to get started.")
-    st.stop()
+    # Don't stop - allow user to see the UI and upload file
 
-# Check if vectorstore is available
+# Check if vectorstore is available - but don't block the UI
 if st.session_state.rag_pipeline is None:
-    st.warning("⚠️ **No resume data indexed yet.** Please upload a CSV file to index your resumes.")
-    st.stop()
+    # Only show warning if user tries to query, not on page load
+    pass  # Will be checked when user submits a query
 
 # Chat input
 user_query = st.chat_input("💬 Enter a job description or ask about candidates...")
 
 if user_query and user_query.strip():
+    # Check if data is loaded before processing query
+    if st.session_state.df is None or len(st.session_state.df) == 0:
+        st.error("❌ No resume data loaded. Please upload a CSV file first.")
+        st.stop()
+    
+    if st.session_state.rag_pipeline is None:
+        st.error("⚠️ **No resume data indexed yet.** Please upload a CSV file to index your resumes.")
+        st.stop()
+    
     # Lazy import heavy packages only when needed
     from llm_agent import ChatBot
     import chatbot_verbosity as chatbot_verbosity
@@ -557,24 +566,34 @@ if user_query and user_query.strip():
     # Generate response
     with st.chat_message("assistant"):
         start_time = time.time()
-        with st.spinner("🤖 Analyzing candidates..."):
-            try:
-                document_list = retriever.retrieve_docs(
-                    user_query, 
-                    llm, 
-                    st.session_state.rag_selection
-                )
-                query_type = retriever.meta_data["query_type"]
-                st.session_state.resume_list = document_list
+        try:
+            with st.spinner("🤖 Analyzing candidates (this may take 10-30 seconds)..."):
+                try:
+                    document_list = retriever.retrieve_docs(
+                        user_query, 
+                        llm, 
+                        st.session_state.rag_selection
+                    )
+                    query_type = retriever.meta_data["query_type"]
+                    st.session_state.resume_list = document_list
+                except Exception as e:
+                    st.error(f"❌ Error retrieving documents: {str(e)}")
+                    import traceback
+                    st.error(f"Details: {traceback.format_exc()}")
+                    st.stop()
+            
+            with st.spinner("🤖 Generating response..."):
                 stream_message = llm.generate_message_stream(
                     user_query, 
                     document_list, 
                     [], 
                     query_type
                 )
-            except Exception as e:
-                st.error(f"❌ Error: {str(e)}")
-                st.stop()
+        except Exception as e:
+            st.error(f"❌ Error: {str(e)}")
+            import traceback
+            st.error(f"Full error: {traceback.format_exc()}")
+            st.stop()
         
         end_time = time.time()
         response_time = end_time - start_time

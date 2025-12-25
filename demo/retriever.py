@@ -148,10 +148,17 @@ class SelfQueryRetriever(RAGRetriever):
       
     self.meta_data["rag_mode"] = rag_mode
     # Bind tools to LLM
-    llm_func_call = llm.llm.bind_tools([retrieve_applicant_id, retrieve_applicant_jd])
+    try:
+        llm_func_call = llm.llm.bind_tools([retrieve_applicant_id, retrieve_applicant_jd])
+    except Exception as e:
+        raise Exception(f"Failed to bind tools to LLM: {str(e)}")
 
     parser = OpenAIFunctionsAgentOutputParser()
     chain = self.prompt | llm_func_call | parser | router
-    result = chain.invoke({"input": question})
+    
+    try:
+        result = chain.invoke({"input": question})
+    except Exception as e:
+        raise Exception(f"Failed to invoke retrieval chain: {str(e)}. This might be due to API timeout or invalid response format.")
 
     return result
