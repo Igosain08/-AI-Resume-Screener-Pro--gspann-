@@ -7,10 +7,15 @@ from datetime import datetime
 
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    # Try with override=True for newer versions, fallback for older
+    try:
+        load_dotenv(override=True)
+    except TypeError:
+        # Older versions don't support override parameter
+        load_dotenv()
 except ImportError:
     # If dotenv not available, use environment variables directly
-    def load_dotenv():
+    def load_dotenv(override=False):
         pass
 
 # Lazy import pandas - only when needed
@@ -54,8 +59,12 @@ st.set_page_config(
 )
 
 # Load environment variables (dotenv is optional)
-# Use override=True to ensure we reload from file, not cache
-load_dotenv(override=True)
+# Try with override=True for newer versions, fallback for older
+try:
+    load_dotenv(override=True)
+except TypeError:
+    # Older versions don't support override parameter
+    load_dotenv()
 
 DATA_PATH = os.getenv("DATA_PATH", "data/main-data/synthetic-resumes.csv")
 FAISS_PATH = os.getenv("FAISS_PATH", "vectorstore")
